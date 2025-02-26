@@ -7,12 +7,12 @@ import re
 import tempfile
 from openpyxl import load_workbook
 from utils import  converter
-# Load environment variables
+
 load_dotenv()
 os.environ["LANGCHAIN_TRACING_V2"] = "true"
 os.environ["LANGCHAIN_API_KEY"] = os.getenv("LANGCHAIN_API_KEY")
 
-# Initialize Ollama model (Mistral)
+
 llm = Ollama(model="mistral", base_url="http://127.0.0.1:11434")
 def clean_and_parse_json(response):
     """Cleans and parses JSON safely, handling errors."""
@@ -20,16 +20,16 @@ def clean_and_parse_json(response):
         if not response or not isinstance(response, str):
             raise ValueError("Response is empty or not a string.")
 
-        # Remove JavaScript-style comments (// ...)
+ 
         response = re.sub(r"//.*", "", response)
 
-        # Ensure all keys and values use double quotes
-        response = response.replace("'", '"')  # Convert single to double quotes
 
-        # Extract only valid JSON (between curly braces)
+        response = response.replace("'", '"')  
+
+
         match = re.search(r"\{.*\}", response, re.DOTALL)
         if match:
-            return json.loads(match.group(0))  # Convert to Python dict
+            return json.loads(match.group(0))  
 
     except json.JSONDecodeError as e:
         print(f"JSON parsing error: {e}")
@@ -37,7 +37,7 @@ def clean_and_parse_json(response):
         print(f"Value error: {e}")
 
     return None 
-# Function to interpret user command using LangChain's Ollama wrapper
+
 def update_excel_mapping(data_dict, user_query):
     prompt = f"""
     You are an AI assistant that updates an Excel mapping dictionary based on user instructions.
@@ -47,7 +47,7 @@ def update_excel_mapping(data_dict, user_query):
 
     {json.dumps(data_dict, indent=4)}
 
-    User instruction: "{user_query}"
+    User instruction: {user_query}
 
     Modify the dictionary according to the user instruction while strictly preserving the format:
     - If a value is enclosed in single quotes (' '), it must remain in single quotes.
@@ -62,25 +62,17 @@ def update_excel_mapping(data_dict, user_query):
     print(response)
     st.write("Raw Response from Ollama:", response)
     response = clean_and_parse_json(response)
-    # response = json.loads(response)
-    print(response)
-    # # Extract the text response
-    # response_text = response["message"]["content"].strip()
 
-    # Extract only the JSON part
-    # match = re.search(r"\{.*?\}", response, re.DOTALL)
-    # if match:
-    #     return json.loads(match.group(0))  # Return parsed JSON
-    # return {} 
+    print(response)
+
     return response
 
-# Function to update Excel file
 def update_excel(file_path, parsed_data):
     try:
-        # Ensure extracted data is valid JSON
+
         data = json.loads(parsed_data)
 
-        sheet_name = "Model Inputs"  # Fixed sheet name
+        sheet_name = "Model Inputs" 
         cell_name, new_value = data.get("cell_name"), data.get("new_value")
 
         if not cell_name or not new_value:
@@ -93,25 +85,25 @@ def update_excel(file_path, parsed_data):
         sheet = wb[sheet_name]
         found = False
 
-        # Normalize cell name for case-insensitive matching
+ 
         cell_name_normalized = str(cell_name).strip().casefold()
 
-        # Find the cell with the name (including merged cells)
+
         for row in sheet.iter_rows(values_only=False):
             for cell in row:
                 if cell.value and str(cell.value).strip().casefold() == cell_name_normalized:
-                    # If the cell is in a merged range, find the top-left cell
+
                     for merged_range in sheet.merged_cells.ranges:
                         if cell.coordinate in merged_range:
                             cell = sheet.cell(row=merged_range.min_row, column=merged_range.min_col)
                             break
                     
-                    # Get the first non-merged cell in the same row
+
                     col = cell.column + 1
                     while sheet.cell(row=cell.row, column=col).coordinate in sheet.merged_cells:
                         col += 1
                     
-                    # Assign new value
+
                     sheet.cell(row=cell.row, column=col).value = new_value
                     found = True
                     break
