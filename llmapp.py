@@ -67,98 +67,44 @@ def update_excel_mapping(data_dict, user_query):
 
     return response
 
-def update_excel(file_path, parsed_data):
-    try:
 
-        data = json.loads(parsed_data)
-
-        sheet_name = "Model Inputs" 
-        cell_name, new_value = data.get("cell_name"), data.get("new_value")
-
-        if not cell_name or not new_value:
-            return "❌ Error: Invalid JSON format from AI."
-
-        wb = load_workbook(file_path, keep_vba=True)
-        if sheet_name not in wb.sheetnames:
-            return f"❌ Sheet '{sheet_name}' not found."
-
-        sheet = wb[sheet_name]
-        found = False
-
- 
-        cell_name_normalized = str(cell_name).strip().casefold()
-
-
-        for row in sheet.iter_rows(values_only=False):
-            for cell in row:
-                if cell.value and str(cell.value).strip().casefold() == cell_name_normalized:
-
-                    for merged_range in sheet.merged_cells.ranges:
-                        if cell.coordinate in merged_range:
-                            cell = sheet.cell(row=merged_range.min_row, column=merged_range.min_col)
-                            break
-                    
-
-                    col = cell.column + 1
-                    while sheet.cell(row=cell.row, column=col).coordinate in sheet.merged_cells:
-                        col += 1
-                    
-
-                    sheet.cell(row=cell.row, column=col).value = new_value
-                    found = True
-                    break
-
-            if found:
-                break
-
-        if not found:
-            return f"❌ Cell name '{cell_name}' not found in the sheet."
-
-        wb.save(file_path)
-        return f"✅ Updated value next to '{cell_name}' to '{new_value}'"
-
-    except json.JSONDecodeError as e:
-        return f"❌ JSON Error: {str(e)}"
-
-    except Exception as e:
-        return f"❌ Error: {str(e)}"
 def update_excel_from_json(json_data, excel_file, output_file, sheet_name):
-    # Load the Excel file and keep the VBA macros if any
+
     wb = load_workbook(excel_file, keep_vba=True)
 
-    # Access the specific sheet you want to modify
+
     if sheet_name not in wb.sheetnames:
         print(f"Sheet '{sheet_name}' does not exist in the Excel file.")
         return
 
     sheet = wb[sheet_name]
 
-    # Step through each entry in the JSON data and update corresponding cells
+ 
     for key, cell_refs in json_data.items():
-        # If the value is a string (cell reference like 'D12' or 'G12, G19, G25')
+ 
         if isinstance(cell_refs, str):
-            # Split the cell references in case multiple references are provided
+   
             cell_list = [cell.strip() for cell in cell_refs.split(',')]
 
             for cell_ref in cell_list:
                 try:
-                    sheet[cell_ref] = key  # Write the key's value to the cell
+                    sheet[cell_ref] = key 
                 except ValueError:
                     print(f"Invalid cell reference: {cell_ref}")
 
         else:
-            # If the value is a number, retrieve corresponding cell references
+        
             if isinstance(cell_refs, str):
                 cell_list = [cell.strip() for cell in cell_refs.split(',')]
                 for cell_ref in cell_list:
                     try:
-                        sheet[cell_ref] = key  # Write the key's value to the cell
+                        sheet[cell_ref] = key   
                     except ValueError:
                         print(f"Invalid cell reference: {cell_ref}")
 
 
     wb.save(output_file)
-# Streamlit UI
+
 st.title("Excel Modifier App (LangChain + Mistral) 📝")
 st.write("Upload a `.xlsm` file and modify it using natural language.")
 
@@ -184,7 +130,7 @@ if uploaded_file:
             result = update_excel_from_json(json_file, file_path,output_file_path , sheet_name)
             st.success(result)
 
-            # Provide a download link
+           
             with open(output_file_path, "rb") as f:
                 st.download_button("Download Modified Excel", f, file_name="modified.xlsm", mime="application/vnd.ms-excel")
         else:
