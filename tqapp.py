@@ -28,7 +28,7 @@ def clean_and_parse_json(response):
    
         match = re.search(r"\{.*\}", response, re.DOTALL)
         if match:
-            return json.loads(match.group(0))  # Convert to Python dict
+            return json.loads(match.group(0)) 
 
     except json.JSONDecodeError as e:
         print(f"JSON parsing error: {e}")
@@ -50,8 +50,9 @@ def update_excel_mapping(data_dict, user_query):
     - **Excel Data (Dictionary Format):**  
     {json.dumps(data_dict, indent=4)}
     {print(data_dict)}
+    
     - **User Query:**  
-    "{user_query}"
+    {user_query}
 
     ### **Expected Output Format:**  
     ```plaintext
@@ -63,57 +64,49 @@ def update_excel_mapping(data_dict, user_query):
     response = llm.invoke(prompt) 
     print(response)
     st.write("Raw Response from Ollama:", response)
-    # response = clean_and_parse_json(response)
-    # response = json.loads(response)
-    print(response)
-    # # Extract the text response
-    # response_text = response["message"]["content"].strip()
 
-    # Extract only the JSON part
-    # match = re.search(r"\{.*?\}", response, re.DOTALL)
-    # if match:
-    #     return json.loads(match.group(0))  # Return parsed JSON
-    # return {} 
+    print(response)
+  
     return response
 
 
 def update_excel_from_json(json_data, excel_file, output_file, sheet_name):
-    # Load the Excel file and keep the VBA macros if any
+  
     wb = load_workbook(excel_file, keep_vba=True)
 
-    # Access the specific sheet you want to modify
+
     if sheet_name not in wb.sheetnames:
         print(f"Sheet '{sheet_name}' does not exist in the Excel file.")
         return
 
     sheet = wb[sheet_name]
 
-    # Step through each entry in the JSON data and update corresponding cells
+  
     for key, cell_refs in json_data.items():
-        # If the value is a string (cell reference like 'D12' or 'G12, G19, G25')
+
         if isinstance(cell_refs, str):
-            # Split the cell references in case multiple references are provided
+    
             cell_list = [cell.strip() for cell in cell_refs.split(',')]
 
             for cell_ref in cell_list:
                 try:
-                    sheet[cell_ref] = key  # Write the key's value to the cell
+                    sheet[cell_ref] = key  
                 except ValueError:
                     print(f"Invalid cell reference: {cell_ref}")
 
         else:
-            # If the value is a number, retrieve corresponding cell references
+
             if isinstance(cell_refs, str):
                 cell_list = [cell.strip() for cell in cell_refs.split(',')]
                 for cell_ref in cell_list:
                     try:
-                        sheet[cell_ref] = key  # Write the key's value to the cell
+                        sheet[cell_ref] = key  
                     except ValueError:
                         print(f"Invalid cell reference: {cell_ref}")
 
 
     wb.save(output_file)
-# Streamlit UI
+
 st.title("Excel sheet analyser ")
 st.write("Upload a `.xlsm` file and modify it using natural language.")
 
@@ -133,11 +126,10 @@ if uploaded_file:
             sheet = wb['Model Inputs']
             json_file = converter(sheet)
             sheet_name = "Model Inputs"
-            # print(json_file)
+
             data_dict_fixed = {str(k): v for k, v in json_file.items()}
             answer = update_excel_mapping(json_file, user_command)
-            # output_file_path = file_path.replace(".xlsm", "_modified.xlsm") 
-            # result = update_excel_from_json(json_file, file_path,output_file_path , sheet_name)
+
             st.write("Excel sheet analysis")
         else :
             st.warning("Please give a query")
