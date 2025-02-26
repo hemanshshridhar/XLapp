@@ -7,7 +7,7 @@ import pandas as pd
 
 class IndexColumnConverter:
     def parse_colindex(self, colindex):
-        """Convert column index (1-based) to Excel column letter (A, B, C, ...)"""
+        
         result = ""
         while colindex > 0:
             colindex, remainder = divmod(colindex - 1, 26)
@@ -60,7 +60,7 @@ def guess_datetime_format(string):
 
 def get_category(string):
     """Categorizes the given input string into predefined types."""
-    if pd.isna(string):  # Check if value is NaN
+    if pd.isna(string):  
         return 'Other'
 
     if isinstance(string, float):
@@ -127,7 +127,6 @@ def inverted_index(markdown: pd.DataFrame):
             else:
                 grouped[row] = [col]
 
-        # Convert column letters to numerical indices for sorting
         def col_to_num(col):
             """Convert column letters (e.g., 'A', 'B', 'AA') to numbers."""
             num = 0
@@ -159,7 +158,7 @@ def inverted_index(markdown: pd.DataFrame):
                     start = cols[i]
                     prev = start
 
-            # Append last range
+        
             ranges.append(f"{start}{row}:{prev}{row}" if start != prev else f"{start}{row}")
             combined.append(", ".join(ranges))
 
@@ -173,42 +172,42 @@ def inverted_index(markdown: pd.DataFrame):
             dictionary[row['Value']] = [row['Address']]
 
 
-    # Remove NaN keys and combine addresses properly
+
     dictionary = {k: v for k, v in dictionary.items() if not pd.isna(k)}
     dictionary = {k: combine_cells(v) for k, v in dictionary.items()}
 
     return dictionary
 def update_excel_from_json(json_data, excel_file, output_file, sheet_name):
-    # Load the Excel file and keep the VBA macros if any
+
     wb = load_workbook(excel_file, keep_vba=True)
 
-    # Access the specific sheet you want to modify
+   
     if sheet_name not in wb.sheetnames:
         print(f"Sheet '{sheet_name}' does not exist in the Excel file.")
         return
 
     sheet = wb[sheet_name]
 
-    # Step through each entry in the JSON data and update corresponding cells
+   
     for key, cell_refs in json_data.items():
-        # If the value is a string (cell reference like 'D12' or 'G12, G19, G25')
+
         if isinstance(cell_refs, str):
-            # Split the cell references in case multiple references are provided
+
             cell_list = [cell.strip() for cell in cell_refs.split(',')]
 
             for cell_ref in cell_list:
                 try:
-                    sheet[cell_ref] = key  # Write the key's value to the cell
+                    sheet[cell_ref] = key 
                 except ValueError:
                     print(f"Invalid cell reference: {cell_ref}")
 
         else:
-            # If the value is a number, retrieve corresponding cell references
+            
             if isinstance(cell_refs, str):
                 cell_list = [cell.strip() for cell in cell_refs.split(',')]
                 for cell_ref in cell_list:
                     try:
-                        sheet[cell_ref] = key  # Write the key's value to the cell
+                        sheet[cell_ref] = key  
                     except ValueError:
                         print(f"Invalid cell reference: {cell_ref}")
 
