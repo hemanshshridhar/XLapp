@@ -24,3 +24,4 @@ PyPDF2
 langchain-objectbox
 transformers
 huggingface_hub
+accelerate>=0.26.0
