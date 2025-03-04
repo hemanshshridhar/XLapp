@@ -8,7 +8,6 @@ import tempfile
 from openpyxl import load_workbook
 from utils import  converter
 from fastapi import FastAPI
-from langchain.prompts import ChatPromptTemplate
 from langchain.chat_models import ChatOpenAI
 import openai
 import openpyxl
