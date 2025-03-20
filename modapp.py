@@ -45,32 +45,35 @@ def store_in_chromadb(country_dict):
     
     vectordb.persist()
 # Function to update Excel mapping
-# Query ChromaDB to retrieve the full document
-def query_rag(query):
-    results = vectordb.similarity_search(query, k=1)  # Get the most relevant result
-    return results[0].page_content if results else "No relevant information found."
 
-# Example query
-user_query = "Country details"
-retrieved_text = query_rag(user_query)
+def update_excel_mapping(data_dict_fixed):
+    # Retrieve stored country_dict from RAG
+    retrieved_text = query_rag()
 
-print("\n🔍 Retrieved Data:\n", retrieved_text)
-def update_excel_mapping(data_dict, user_query):
+    # Convert retrieved text to a dictionary
+    country_dict = {line.split(": ")[0]: line.split(": ")[1] for line in retrieved_text.split("\n")}
+
+    # LLM Prompt (No user query, only dict merging)
     prompt = f"""
-    You are analyzing structured data extracted from an Excel sheet.
-    Modify the data **precisely as requested** by the user.
-    Maintain the original format, **do not enclose integers in quotes**, and **return only valid JSON**.
+    You are given two dictionaries:  
+    - `data_dict_fixed` contains **Excel data mappings**.  
+    - `country_dict` contains **country-specific values**.  
 
-    #### Given Data:
+    **Task**:  
+    - Update `data_dict_fixed` using values from `country_dict`.  
+    - Only modify values that exist in **both** dictionaries.  
+    - Keep all other values in `data_dict_fixed` unchanged.  
+
+    #### Given Dictionaries:
     ```json
-    {json.dumps(data_dict, separators=(',', ':'))}
+    {{
+        "data_dict_fixed": {json.dumps(data_dict_fixed, separators=(',', ':'))},
+        "country_dict": {json.dumps(country_dict, separators=(',', ':'))}
+    }}
     ```
-    
-    #### User Query:
-    {user_query}
-    
+
     #### Expected Output:
-    Return the updated dictionary **in valid JSON format only**.
+    Return the updated `data_dict_fixed` **in valid JSON format only**.
     """
 
     response = client.chat.completions.create(
@@ -81,11 +84,50 @@ def update_excel_mapping(data_dict, user_query):
     )
 
     response_text = response.choices[0].message.content.strip()
-    parsed_dict = parse_json_response(response_text)
-    cleaned_dict = enforce_numeric_keys(parsed_dict)
+    updated_dict = json.loads(response_text)  # Parse LLM's response
 
-    st.write("Updated Dictionary:", cleaned_dict)
-    return cleaned_dict
+    return updated_dict
+
+def query_rag():
+    vectordb = Chroma(persist_directory="./chroma_db", embedding_function=embedding_model)
+    results = vectordb.similarity_search("country_dict", k=1)  
+    return results[0].page_content if results else "{}"
+# Example query
+# user_query = "Country details"
+# retrieved_text = query_rag(user_query)
+
+# print("\n🔍 Retrieved Data:\n", retrieved_text)
+# def update_excel_mapping(data_dict, user_query):
+#     prompt = f"""
+#     You are analyzing structured data extracted from an Excel sheet.
+#     Modify the data **precisely as requested** by the user.
+#     Maintain the original format, **do not enclose integers in quotes**, and **return only valid JSON**.
+
+#     #### Given Data:
+#     ```json
+#     {json.dumps(data_dict, separators=(',', ':'))}
+#     ```
+    
+#     #### User Query:
+#     {user_query}
+    
+#     #### Expected Output:
+#     Return the updated dictionary **in valid JSON format only**.
+#     """
+
+#     response = client.chat.completions.create(
+#         model="gpt-4-turbo",
+#         messages=[{"role": "system", "content": "You are an AI assistant."},
+#                   {"role": "user", "content": prompt}],
+#         temperature=0.2
+#     )
+
+#     response_text = response.choices[0].message.content.strip()
+#     parsed_dict = parse_json_response(response_text)
+#     cleaned_dict = enforce_numeric_keys(parsed_dict)
+
+#     st.write("Updated Dictionary:", cleaned_dict)
+#     return cleaned_dict
 
 # Function to update Excel sheet based on JSON data
 def update_excel_from_json(json_data, excel_file, output_file, sheet_name):
