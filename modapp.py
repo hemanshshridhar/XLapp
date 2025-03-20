@@ -10,6 +10,8 @@ from langchain.prompts import ChatPromptTemplate
 from openpyxl import load_workbook
 from utils import converter
 import openai
+from langchain.vectorstores import Chroma
+from langchain.embeddings import OpenAIEmbeddings
 
 
 load_dotenv()
@@ -18,7 +20,7 @@ os.environ["LANGCHAIN_API_KEY"] = os.getenv("LANGCHAIN_API_KEY")
 openai.api_key =     os.getenv("OPENAI_API_KEY")
 model = ChatOpenAI(model_name="gpt-4")
 client = openai.Client(api_key=openai.api_key)
-
+embedding_model = OpenAIEmbeddings()
 # Function to get sheet names from an Excel file
 def get_sheet_names(file_path):
     wb = load_workbook(file_path, keep_vba=True)
@@ -33,7 +35,26 @@ def parse_json_response(response_text):
 def enforce_numeric_keys(data):
     return {float(k) if k.replace('.', '', 1).isdigit() else k: v for k, v in data.items()}
 
+
+def store_in_chromadb(country_dict):
+    vectordb = Chroma(persist_directory="./chroma_db", embedding_function=embedding_model)
+
+    for country, data in country_dict.items():
+        doc_text = convert_dict_to_text(country, data)
+        vectordb.add_texts([doc_text], metadatas=[{"label": country}])
+    
+    vectordb.persist()
 # Function to update Excel mapping
+# Query ChromaDB to retrieve the full document
+def query_rag(query):
+    results = vectordb.similarity_search(query, k=1)  # Get the most relevant result
+    return results[0].page_content if results else "No relevant information found."
+
+# Example query
+user_query = "Country details"
+retrieved_text = query_rag(user_query)
+
+print("\n🔍 Retrieved Data:\n", retrieved_text)
 def update_excel_mapping(data_dict, user_query):
     prompt = f"""
     You are analyzing structured data extracted from an Excel sheet.
@@ -95,11 +116,14 @@ st.write("Upload a `.xlsm` file and modify it using natural language.")
 
 uploaded_file = st.file_uploader("Upload your .xlsm file", type=["xlsm"])
 uploaded_sheet= st.file_uploader("Upload country sheet", type = ["xlsm"])
-if uploaded_file:
+if uploaded_file and uploaded_sheet:
     with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsm") as temp_file:
         temp_file.write(uploaded_file.read())
         file_path = temp_file.name
 
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsm") as country_temp_file:
+        country_temp_file.write(uploaded_country_sheet.read())
+        country_file_path = country_temp_file.name        
     # Display available sheet names
     sheet_names = get_sheet_names(file_path)
     selected_sheet = st.selectbox("Select a sheet to modify", sheet_names)
@@ -112,7 +136,13 @@ if uploaded_file:
             sheet = wb[selected_sheet]
             json_file = converter(sheet)
             data_dict_fixed = {str(k): v for k, v in json_file.items()}
-            
+            wb_country = load_workbook(country_file_path, keep_vba=True)
+            country_sheet = wb_country[selected_country_sheet]
+            country_dict = converter(country_sheet) 
+            ## converting the dictioanry to text  that will be embedded in the RAG
+            document_text = "\n".join([f"{k}: {v}" for k, v in country_dict.items()])
+            # country_data_dict_fixed = {str(k): v for k, v in json_country_file.items()}
+            store_in_chromadb(document_text)
             json_updated = update_excel_mapping(data_dict_fixed, user_command)
             output_file_path = file_path.replace(".xlsm", "_modified.xlsm") 
             result = update_excel_from_json(json_updated, file_path, output_file_path, selected_sheet)
