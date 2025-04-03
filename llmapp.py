@@ -20,14 +20,24 @@ from langchain.chat_models import ChatOpenAI
 # # os.environ["LANGCHAIN_API_KEY"] = st.secrets["LANGCHAIN_API_KEY"]
 # langchain_key = st.secrets["LANGCHAIN_API_KEY"]
 # openai.api_key = st.secrets["OPENAI_API_KEY"]
-
 openai_api_key = st.secrets["OPENAI_API_KEY"]
 langchain_key = st.secrets["LANGCHAIN_API_KEY"]
 
 # Set environment variables
 os.environ["LANGCHAIN_TRACING_V2"] = "true"
 os.environ["LANGCHAIN_API_KEY"] = langchain_key
-model = ChatOpenAI(model_name="gpt-4", openai_api_key=openai.api_key)
+
+# Initialize OpenAI model with correct API key assignment
+model = ChatOpenAI(model_name="gpt-4", openai_api_key=openai_api_key)
+# openai_api_key = st.secrets["OPENAI_API_KEY"]
+# langchain_key = st.secrets["LANGCHAIN_API_KEY"]
+
+# Set environment variables
+# os.environ["LANGCHAIN_TRACING_V2"] = "true"
+# os.environ["LANGCHAIN_API_KEY"] = langchain_key
+# model = ChatOpenAI(model_name="gpt-4", openai_api_key=openai.api_key)
+st.write("OpenAI API Key:", st.secrets.get("OPENAI_API_KEY", "❌ Not Found"))
+st.write("LangChain API Key:", st.secrets.get("LANGCHAIN_API_KEY", "❌ Not Found"))
 
 def clean_and_parse_json(response):
     """Cleans and parses JSON safely, handling errors."""
