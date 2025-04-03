@@ -12,10 +12,14 @@ from fastapi import FastAPI
 from langchain.prompts import ChatPromptTemplate
 from langchain.chat_models import ChatOpenAI
 
+# os.environ["LANGCHAIN_TRACING_V2"] = "true"
+# api_key = st.secrets["OPENAI_API_KEY"]
+# langchain_key = st.secrets["LANGCHAIN_API_KEY"]
+
 os.environ["LANGCHAIN_TRACING_V2"] = "true"
-api_key = st.secrets["OPENAI_API_KEY"]
-langchain_key = st.secrets["LANGCHAIN_API_KEY"]
-model = ChatOpenAI(model_name="gpt-4")
+os.environ["LANGCHAIN_API_KEY"] = st.secrets["LANGCHAIN_API_KEY"]
+openai.api_key = st.secrets["OPENAI_API_KEY"]
+model = ChatOpenAI(model_name="gpt-4", openai_api_key=openai.api_key)
 
 def clean_and_parse_json(response):
     """Cleans and parses JSON safely, handling errors."""
